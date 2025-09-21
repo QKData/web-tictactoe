@@ -71,7 +71,7 @@ function GameController(
   playerOneName = "Player One",
   playerTwoName = "Player Two"
 ) {
-  const board = Gameboard();
+  let board = Gameboard();
 
   const players = [
     {
@@ -85,11 +85,24 @@ function GameController(
   ];
 
   let activePlayer = players[0];
+  let gameOver = false;
 
   const switchPlayerTurn = () => {
     activePlayer = activePlayer === players[0] ? players[1] : players[0];
   };
   const getActivePlayer = () => activePlayer;
+  const getGameOver = () => gameOver;
+
+  // Add restart function that reuses Gameboard()
+  const restartGame = () => {
+    board = Gameboard(); // Create a new board instance
+    gameOver = false;
+    activePlayer = players[0];
+    printNewRound();
+  };
+
+  // Change this to return the current board dynamically
+  const getBoard = () => board.getBoard();
 
   // Check if player has won after the move
   const checkWin = () => {
@@ -116,6 +129,8 @@ function GameController(
   };
 
   const playRound = (row, col) => {
+    if (gameOver) return;
+
     console.log(`Placing token for ${getActivePlayer().name} at row ${row}, column ${col}...`);
     const validMove = board.placeToken(row, col, getActivePlayer().token);
     if (!validMove) {
@@ -125,10 +140,12 @@ function GameController(
 
     if (checkWin()) {
       console.log(`${getActivePlayer().name} wins!`);
+      gameOver = true;
       return;
     }
     if (checkDraw()) {
       console.log("It's a draw!");
+      gameOver = true;
       return;
     }
 
@@ -144,8 +161,87 @@ function GameController(
   // getActivePlayer for the UI version, so I'm revealing it now
   return {
     playRound,
-    getActivePlayer
+    getActivePlayer,
+    getGameOver,
+    getBoard,
+    restartGame
   };
 }
 
-const game = GameController();
+function ScreenController() {
+  const game = GameController();
+  const playerTurnDiv = document.querySelector('.turn');
+  const boardDiv = document.querySelector('.board');
+  const restartButton = document.querySelector('.restart');
+
+  const updateScreen = () => {
+    // clear the board
+    boardDiv.textContent = "";
+
+    // get the newest version of the board and player turn
+    const board = game.getBoard();
+    const activePlayer = game.getActivePlayer();
+
+    // Display player's turn
+    if (game.getGameOver()) {
+      playerTurnDiv.textContent = `Game Over!`;
+    } else {
+      playerTurnDiv.textContent = `${activePlayer.name}'s turn...`;
+    }
+
+    // Render board squares
+    board.forEach((row, rowIndex) => {
+      row.forEach((cell, colIndex) => {
+        // Anything clickable should be a button!!
+        const cellButton = document.createElement("button");
+        cellButton.classList.add("cell");
+        // Create a data attribute to identify the column
+        // This makes it easier to pass into our `playRound` function 
+        cellButton.dataset.row = rowIndex;
+        cellButton.dataset.column = colIndex;
+        
+        // Display X or O instead of numbers
+        const cellValue = cell.getValue();
+        if (cellValue === 1) {
+          cellButton.textContent = "X";
+        } else if (cellValue === 2) {
+          cellButton.textContent = "O";
+        } else {
+          cellButton.textContent = "";
+        }
+        
+        boardDiv.appendChild(cellButton);
+      });
+    });
+  }
+
+  // Add event listener for the board
+  function clickHandlerBoard(e) {
+    const selectedRow = e.target.dataset.row;
+    const selectedColumn = e.target.dataset.column;
+    // Make sure I've clicked a column and not the gaps in between
+    if (!selectedColumn || !selectedRow) return;
+    
+    game.playRound(parseInt(selectedRow), parseInt(selectedColumn));
+    updateScreen();
+  }
+  boardDiv.addEventListener("click", clickHandlerBoard);
+
+  // Add event listener for restart button
+  function clickHandlerRestart() {
+    game.restartGame();
+    updateScreen();
+  }
+  
+  // Only add event listener if restart button exists
+  if (restartButton) {
+    restartButton.addEventListener("click", clickHandlerRestart);
+  }
+
+  // Initial render
+  updateScreen();
+
+  // We don't need to return anything from this module because everything is encapsulated inside this screen controller.
+}
+
+ScreenController();
