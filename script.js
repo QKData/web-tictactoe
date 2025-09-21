@@ -86,17 +86,20 @@ function GameController(
 
   let activePlayer = players[0];
   let gameOver = false;
+  let gameResult = null;
 
   const switchPlayerTurn = () => {
     activePlayer = activePlayer === players[0] ? players[1] : players[0];
   };
   const getActivePlayer = () => activePlayer;
   const getGameOver = () => gameOver;
+  const getGameResult = () => gameResult;
 
   // Add restart function that reuses Gameboard()
   const restartGame = () => {
     board = Gameboard(); // Create a new board instance
     gameOver = false;
+    gameResult = null;
     activePlayer = players[0];
     printNewRound();
   };
@@ -141,11 +144,13 @@ function GameController(
     if (checkWin()) {
       console.log(`${getActivePlayer().name} wins!`);
       gameOver = true;
+      gameResult = "win";
       return;
     }
     if (checkDraw()) {
       console.log("It's a draw!");
       gameOver = true;
+      gameResult = "draw";
       return;
     }
 
@@ -163,6 +168,7 @@ function GameController(
     playRound,
     getActivePlayer,
     getGameOver,
+    getGameResult,
     getBoard,
     restartGame
   };
@@ -184,7 +190,11 @@ function ScreenController() {
 
     // Display player's turn
     if (game.getGameOver()) {
-      playerTurnDiv.textContent = `Game Over!`;
+      if (game.getGameResult() === "draw") {
+        playerTurnDiv.textContent = `Game Over! It's a Draw!`;
+      } else {
+        playerTurnDiv.textContent = `Game Over! ${activePlayer.name} wins!`;
+      }
     } else {
       playerTurnDiv.textContent = `${activePlayer.name}'s turn...`;
     }
